@@ -1,3 +1,0 @@
-C:/Users/TheKi/OneDrive - UVG/Semestre VI/Graficas por computadora/Ejercicios/Hello World/build/CMakeFiles/HW.dir
-C:/Users/TheKi/OneDrive - UVG/Semestre VI/Graficas por computadora/Ejercicios/Hello World/build/CMakeFiles/edit_cache.dir
-C:/Users/TheKi/OneDrive - UVG/Semestre VI/Graficas por computadora/Ejercicios/Hello World/build/CMakeFiles/rebuild_cache.dir
