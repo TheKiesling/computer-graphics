@@ -144,7 +144,7 @@ int main() {
     subprocess.call(editor_command, shell=True)
 
     cmake_content = '''\
-cmake_minimum_required(VERSION 3.26)
+cmake_minimum_required(VERSION 3.22)
 
 project({} VERSION 1.0)
 
