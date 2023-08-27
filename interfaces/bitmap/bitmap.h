@@ -7,22 +7,14 @@ struct Bitmap{
     const std::string filename = "out.bmp";
 
     void render() {
-        framebuffer.setClearColor(Color(0, 0, 0));
         framebuffer.clear();
 
-        framebuffer.setCurrentColor(Color(100, 150, 100));
-        framebuffer.point(Vertex2(100, 100));
-        framebuffer.point(Vertex2(200, 200));
-        framebuffer.drawLine(100, 100, 200, 200);
-        std::vector<Vertex2> points = {Vertex2(100, 100), Vertex2(200, 200), Vertex2(150, 300)};
-        framebuffer.drawPolygon(points);
-        framebuffer.fillPolygon(points);
         renderBuffer();
     }
 
     void renderBuffer() {
-        const int width = framebuffer.framebufferWidth;
-        const int height = framebuffer.framebufferHeight;
+        const int width = FRAMEBUFFER_WIDTH;
+        const int height = FRAMEBUFFER_HEIGHT;
 
         constexpr int BMP_HEADER_SIZE = 14;
         constexpr int DIB_HEADER_SIZE = 40;

@@ -1,116 +1,112 @@
 #pragma once
-#include <vector>
 #include "color.h"
-#include "vertex2.h"
-#include <algorithm>
+#include <SDL2/SDL.h>
+#include "vertex3.h"
+#include "face.h"
+
+const int WINDOW_WIDTH = 1500;
+const int WINDOW_HEIGHT = 800;
+const int FRAMEBUFFER_SIZE = WINDOW_WIDTH * WINDOW_HEIGHT;
 
 struct Framebuffer {
-    const int framebufferWidth = 800;
-    const int framebufferHeight = 600;
+    Color framebuffer[FRAMEBUFFER_SIZE];
     Color clearColor;
     Color currentColor;
-    std::vector<Color> framebuffer;
+    
+    Framebuffer()
+    : clearColor(Color(0, 0, 0)),
+        currentColor(Color(255, 255, 255)) {
+            clear();
+        }
 
-    Framebuffer(Color clearColor = Color(0, 0, 0))
-        : clearColor(clearColor),
-          currentColor(Color(255, 255, 255)), 
-          framebuffer(framebufferWidth * framebufferHeight, clearColor) {}
-
-    void setClearColor(Color color) {
-        clearColor = color;
+    void clear() {
+        for (int i = 0; i < FRAMEBUFFER_SIZE; i++) {
+            framebuffer[i] = clearColor;
+        }
     }
 
-    void setCurrentColor(Color color) {
+    void setColor(const Color& color) {
         currentColor = color;
     }
 
-    void clear() {
-        std::fill(framebuffer.begin(), framebuffer.end(), clearColor);
-    }
+    void point(const Vertex3& vertex, SDL_Renderer* renderer) { 
+        int width, height;
+        SDL_GetRendererOutputSize(renderer, &width, &height);
 
-    void point(Vertex2 vertex) {
-        int x = static_cast<int>(vertex.x);
-        int y = static_cast<int>(vertex.y);
+        int x = static_cast<int>(vertex.x * static_cast<float>(WINDOW_WIDTH) / static_cast<float>(width));
+        int y = static_cast<int>(vertex.y * static_cast<float>(WINDOW_HEIGHT) / static_cast<float>(height));
 
-        if (x >= 0 && x < framebufferWidth && y >= 0 && y < framebufferHeight) {
-            int index = y * framebufferWidth + x;
-            framebuffer[index] = currentColor;
+        if (x >= 0 && x < WINDOW_WIDTH && y >= 0 && y < WINDOW_HEIGHT) {
+            framebuffer[y * WINDOW_WIDTH + x] = currentColor;
+            SDL_SetRenderDrawColor(renderer, currentColor.r, currentColor.g, currentColor.b, 255);
+            SDL_RenderDrawPoint(renderer, x, y);
         }
     }
+    
 
-    void drawLine(float x1, float y1, float x2, float y2) {
-        int x1_int = static_cast<int>(x1);
-        int y1_int = static_cast<int>(y1);
-        int x2_int = static_cast<int>(x2);
-        int y2_int = static_cast<int>(y2);
+    void line(const Vertex3& start, const Vertex3& end, SDL_Renderer* renderer) {
+        int x1 = static_cast<int>(round(start.x));
+        int y1 = static_cast<int>(round(start.y));
+        int x2 = static_cast<int>(round(end.x));
+        int y2 = static_cast<int>(round(end.y));
 
-        int dx = abs(x2_int - x1_int);
-        int dy = abs(y2_int - y1_int);
-        int sx = x1_int < x2_int ? 1 : -1;
-        int sy = y1_int < y2_int ? 1 : -1;
+        int dx = abs(x2 - x1);
+        int dy = abs(y2 - y1);
+        int sx = (x1 < x2) ? 1 : -1;
+        int sy = (y1 < y2) ? 1 : -1;
         int err = dx - dy;
 
         while (true) {
-            point(Vertex2(x1_int, y1_int));
+            Vertex3 pointVertex(glm::vec3(static_cast<float>(x1), static_cast<float>(y1), 0.0f));
 
-            if (x1_int == x2_int && y1_int == y2_int) {
-                break;
+            point(pointVertex, renderer);
+
+            if (x1 == x2 && y1 == y2) {
+                break; 
             }
 
             int e2 = 2 * err;
+
             if (e2 > -dy) {
                 err -= dy;
-                x1_int += sx;
+                x1 += sx;
             }
+
             if (e2 < dx) {
                 err += dx;
-                y1_int += sy;
+                y1 += sy;
             }
         }
     }
 
-    void drawPolygon(const std::vector<Vertex2>& points) {
-        if (points.size() < 2) {
-            return; 
-        }
 
-        for (size_t i = 0; i < points.size() - 1; ++i) {
-            drawLine(points[i].x, points[i].y, points[i + 1].x, points[i + 1].y);
-        }
-
-        drawLine(points.back().x, points.back().y, points[0].x, points[0].y);
+    void triangle(const Vertex3& A, const Vertex3& B, const Vertex3& C, SDL_Renderer* renderer) {
+        line(A, B, renderer);
+        line(B, C, renderer);
+        line(C, A, renderer);
     }
 
-    void fillPolygon(const std::vector<Vertex2>& vertices) {
-        int minY = framebufferHeight - 1;
-        int maxY = 0;
-        for (const auto& vertex : vertices) {
-            int y = static_cast<int>(vertex.y);
-            minY = std::min(minY, y);
-            maxY = std::max(maxY, y);
-        }
+    void renderBuffer(SDL_Renderer* renderer) {
+        SDL_Texture* texture = SDL_CreateTexture(
+            renderer, 
+            SDL_PIXELFORMAT_RGB24,
+            SDL_TEXTUREACCESS_STREAMING,
+            WINDOW_WIDTH, 
+            WINDOW_HEIGHT
+        );
 
-        for (int y = minY; y <= maxY; y++) {
-            std::vector<float> intersections;
-            for (size_t i = 0; i < vertices.size(); i++) {
-                size_t nextIdx = (i + 1) % vertices.size();
-                int y0 = static_cast<int>(vertices[i].y);
-                int y1 = static_cast<int>(vertices[nextIdx].y);
-                if ((y0 <= y && y1 > y) || (y1 <= y && y0 > y)) {
-                    float x = vertices[i].x + (static_cast<float>(y - y0) / (y1 - y0)) * (vertices[nextIdx].x - vertices[i].x);
-                    intersections.push_back(x);
-                }
-            }
+        SDL_UpdateTexture(
+            texture, 
+            NULL, 
+            framebuffer, 
+            WINDOW_WIDTH * sizeof(Color)
+        );
 
-            std::sort(intersections.begin(), intersections.end());
+        SDL_RenderClear(renderer);
 
-            for (size_t i = 0; i + 1 < intersections.size(); i += 2) {
-                int x0 = static_cast<int>(intersections[i]);
-                int x1 = static_cast<int>(intersections[i + 1]);
-                for (int x = x0; x <= x1; x++) {
-                    point(Vertex2(static_cast<float>(x), static_cast<float>(y)));
-                }
-            }
-        }
+        SDL_RenderCopy(renderer, texture, NULL, NULL);
+
+        SDL_DestroyTexture(texture);
     }
+
 };

@@ -6,6 +6,8 @@ struct Color {
     uint8_t g; 
     uint8_t b; 
 
+    Color() : r(0), g(0), b(0) {}
+
     Color(uint8_t red, uint8_t green, uint8_t blue)
     : r(clamp(red)), g(clamp(green)), b(clamp(blue)) {}
 
